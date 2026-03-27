@@ -63,18 +63,15 @@ void app_main(void)
             pierwszy_autobus.direction, 
             pierwszy_autobus.sec_left_live);
 
-            // Przeliczamy sekundy na minuty (żeby na ekranie ładniej wyglądało)
             int minuty = pierwszy_autobus.sec_left_live / 60;
             char czas_str[16];
-            snprintf(czas_str, sizeof(czas_str), "%d min", minuty); // Tworzymy ładny tekst, np. "4 min"
+            snprintf(czas_str, sizeof(czas_str), "%d min", minuty);
 
-            // Czyścimy fragment ekranu (żeby stare napisy nie nałożyły się na nowe)
             Paint_DrawRectangle(10, 100, 300, 250, WHITE, DOT_PIXEL_1X1, DRAW_FILL_FULL);
             
-            // Rysujemy nowe dane!
             Paint_DrawString_EN(10, 100, pierwszy_autobus.line, &Font16, BLACK, WHITE);
             Paint_DrawString_EN(10, 150, pierwszy_autobus.direction, &Font16, BLACK, WHITE);
-            Paint_DrawString_EN(10, 200, czas_str, &Font16, BLACK, WHITE); // Rysujemy nasz tekst "czas_str"!
+            Paint_DrawString_EN(10, 200, czas_str, &Font16, BLACK, WHITE);
 
             printf("DISP FAST START\n");
             EPD_4IN2_V2_Display_Fast(Image);
@@ -90,6 +87,6 @@ void app_main(void)
         EPD_4IN2_V2_Sleep();
         printf("SLEEP DONE\n");
 
-        DEV_Delay_ms(10000); // Odczekaj 10 sekund przed kolejnym sprawdzeniem (w HTTP mozesz pytac czesto!)
+        DEV_Delay_ms(10000);
     }
 }
