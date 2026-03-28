@@ -274,6 +274,7 @@ parameter:
 ******************************************************************************/
 void EPD_4IN2_V2_Init_Fast(UBYTE Mode)
 {
+    Debug("EPD INIT FAST START");
     EPD_4IN2_V2_Reset();
 
     EPD_4IN2_V2_ReadBusy();   
@@ -313,6 +314,7 @@ void EPD_4IN2_V2_Init_Fast(UBYTE Mode)
 	EPD_4IN2_V2_SetCursor(0, 0);
 	
     EPD_4IN2_V2_ReadBusy();
+    Debug("EPD INIT FAST DONE");
 }
 
 

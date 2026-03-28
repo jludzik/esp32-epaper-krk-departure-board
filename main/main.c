@@ -13,18 +13,15 @@
 void app_main(void)
 {
     wifi_manager_init_sta();
-
     ntp_connect();
-
     mpk_api_init();
+    mpk_api_update_departure_buffer();
 
     DEV_Module_Init();
-
     EPD_4IN2_V2_Init();
     
     EPD_4IN2_V2_Clear();
-    Debug("..");
-    DEV_Delay_ms(3000);
+    DEV_Delay_ms(2000);
     
     uint8_t* Image = (uint8_t*)malloc(EPD_4IN2_V2_SIZE);
     if(Image == NULL)
@@ -42,50 +39,42 @@ void app_main(void)
 
     EPD_4IN2_V2_Display(Image);
     Debug("..");
-    DEV_Delay_ms(3000);
-
+    DEV_Delay_ms(2000);
     EPD_4IN2_V2_Sleep();
 
-    mpk_api_departure_t pierwszy_autobus;
+    mpk_api_departure_t test_dep;
 
     while(1)
     {
-        printf("INIT FAST START\n");
         EPD_4IN2_V2_Init_Fast(Seconds_1_5S); 
         DEV_Delay_ms(2000);
-        printf("INIT FAST DONE\n");
 
-        mpk_api_status_t status = mpk_api_get_departure_data(&pierwszy_autobus);
-        if (status == MPK_API_OK)
+        mpk_api_status_t status = mpk_api_get_departure(&test_dep, 1);
+        if(status == MPK_API_OK)
         {
-            printf("SUKCES! Linia: %s, Kierunek: %s, Za ile sekund: %d\n", 
-            pierwszy_autobus.line, 
-            pierwszy_autobus.direction, 
-            pierwszy_autobus.sec_left_live);
+            Debug("Line: %s, Direction: %s, sec to left: %d\n", test_dep.line, test_dep.direction, test_dep.sec_left_live);
 
-            int minuty = pierwszy_autobus.sec_left_live / 60;
-            char czas_str[16];
-            snprintf(czas_str, sizeof(czas_str), "%d min", minuty);
-
+            int min = test_dep.sec_left_live / 60;
+            char time_str[16];
+            snprintf(time_str, sizeof(time_str), "%d min", min);
+            
             Paint_DrawRectangle(10, 100, 300, 250, WHITE, DOT_PIXEL_1X1, DRAW_FILL_FULL);
             
-            Paint_DrawString_EN(10, 100, pierwszy_autobus.line, &Font16, BLACK, WHITE);
-            Paint_DrawString_EN(10, 150, pierwszy_autobus.direction, &Font16, BLACK, WHITE);
-            Paint_DrawString_EN(10, 200, czas_str, &Font16, BLACK, WHITE);
+            Paint_DrawString_EN(10, 100, test_dep.line, &Font16, BLACK, WHITE);
+            Paint_DrawString_EN(10, 150, test_dep.direction, &Font16, BLACK, WHITE);
+            Paint_DrawString_EN(10, 200, time_str, &Font16, BLACK, WHITE);
 
-            printf("DISP FAST START\n");
+            Debug("DISP FAST START\n");
             EPD_4IN2_V2_Display_Fast(Image);
             DEV_Delay_ms(2000);
-            printf("DISP FAST DONE\n");
+            Debug("DISP FAST DONE\n");
         }
         else
         {
-            printf("BLAD POBIERANIA API - ekran nie zostanie odswiezony: %d\n", status);
+            Debug("BLAD POBIERANIA API - ekran nie zostanie odswiezony: %d\n", status);
         }
 
-        printf("SLEEP START\n");
         EPD_4IN2_V2_Sleep();
-        printf("SLEEP DONE\n");
 
         DEV_Delay_ms(10000);
     }

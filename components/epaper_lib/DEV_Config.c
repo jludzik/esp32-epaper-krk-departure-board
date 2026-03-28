@@ -146,12 +146,12 @@ void DEV_GPIO_Mode(UWORD Pin, UWORD Mode)
 
 	if (Mode == 0 || Mode == GPIO_MODE_INPUT)
 	{
-		gpio_set_direction((gpio_num_t)Pin, GPIO_MODE_INPUT);      // Ustaw pin jako wejście
-		gpio_set_pull_mode((gpio_num_t)Pin, GPIO_PULLUP_ONLY);     // Włącz tylko rezystor podciągający (pull-up)
+		gpio_set_direction((gpio_num_t)Pin, GPIO_MODE_INPUT);
+		gpio_set_pull_mode((gpio_num_t)Pin, GPIO_PULLUP_ONLY); 
 	}
 	else if(Mode == 1)
 	{
-    	gpio_set_direction((gpio_num_t)Pin, GPIO_MODE_OUTPUT);     // Ustaw pin jako wyjście
+    	gpio_set_direction((gpio_num_t)Pin, GPIO_MODE_OUTPUT);
 	}
 }
 

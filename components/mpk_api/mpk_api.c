@@ -4,6 +4,12 @@
 #include <string.h>
 #include <stdlib.h>
 
+/*
+	Modified and adapted for ESP32 (ESP-IDF) by Jakub Łudzik
+	https://github.com/jludzik
+    Date: 21.03.2026
+*/
+
 // ---------------- ESP32 CONFIG -------------
 #include "esp_log.h"
 #include "esp_http_client.h"
@@ -13,10 +19,10 @@
 // ------------------- DEBUG ----------------
 #include "debug.h"
 
-//extern const char mpk_cert_pem_start[] asm("_binary_mpk_cert_pem_start");
-//extern const char mpk_cert_pem_end[]   asm("_binary_mpk_cert_pem_end");
-
 static char* recv_buffer = NULL;
+static mpk_api_departure_t dep_internal_buffer[MAX_SAVE_DEPARTURES];
+static int dep_download_count = 0;
+static uint8_t dep_save_count = 0;
 
 mpk_api_status_t mpk_api_init(void)
 {
@@ -37,17 +43,17 @@ mpk_api_status_t mpk_api_init(void)
     return MPK_API_OK;
 }
 
-mpk_api_status_t mpk_api_get_departure_data(mpk_api_departure_t* dep_out)
+mpk_api_status_t mpk_api_update_departure_buffer(void)
 {
     if(recv_buffer == NULL)
     {
-        Debug("recv_buff not exzist");
+        Debug("recv_buff not exsist");
         return MPK_API_ERR_UNINITIALIZED;
     }
 
+    memset(dep_internal_buffer,0,sizeof(dep_internal_buffer));
     memset(recv_buffer,0,MAX_HTTP_RECV_BUFFER);
 
-    Debug("KROK 2: Konfiguracja klienta HTTP...");
     esp_http_client_config_t http_config = {
         .url = MPK_API_URL,
         .method = HTTP_METHOD_GET,
@@ -56,7 +62,6 @@ mpk_api_status_t mpk_api_get_departure_data(mpk_api_departure_t* dep_out)
         .timeout_ms = 10000
     };
 
-    Debug("KROK 3: Inicjalizacja klienta...");
     esp_http_client_handle_t http_client_handle = esp_http_client_init(&http_config);
     if(http_client_handle == NULL)
     {
@@ -64,34 +69,29 @@ mpk_api_status_t mpk_api_get_departure_data(mpk_api_departure_t* dep_out)
         return MPK_API_ERR_HTTP;
     }
 
-    Debug("KROK 4: Otwieranie polaczenia (Handshake SSL) - to moze chwile potrwac...");
-    mpk_api_status_t http_status = MPK_API_ERR_HTTP;
     esp_err_t esp_http_status = esp_http_client_open(http_client_handle, 0);
-
     if(esp_http_status != ESP_OK)
     {
         esp_http_client_cleanup(http_client_handle);
+        Debug("HTTP connection failed");
         return MPK_API_ERR_HTTP;
     }
 
-    Debug("KROK 5: Polaczono! Pobieranie naglowkow...");
+    Debug("HTTP connected");
     esp_http_client_fetch_headers(http_client_handle);
-    
-    int32_t total_read_len = 0;
-    int32_t read_len = 0;
 
+    int32_t recv_buffer_total_read_len = 0;
+    int32_t recv_buffer_read_len = 0;
     while(1)
     {
-        read_len = esp_http_client_read(http_client_handle,recv_buffer + total_read_len, MAX_HTTP_RECV_BUFFER - total_read_len - 1);
+        recv_buffer_read_len = esp_http_client_read(http_client_handle,recv_buffer + recv_buffer_total_read_len, MAX_HTTP_RECV_BUFFER - recv_buffer_total_read_len - 1);
 
-        if(read_len <= 0) break;
-        total_read_len += read_len;
+        if(recv_buffer_read_len <= 0) break;
+        recv_buffer_total_read_len += recv_buffer_read_len;
     }
-    recv_buffer[total_read_len] = '\0';
+    recv_buffer[recv_buffer_total_read_len] = '\0';
 
-    mpk_api_status_t api_status = MPK_API_OK;
-
-    if(total_read_len > 0)
+    if(recv_buffer_total_read_len > 0)
     {
         cJSON* json_root = cJSON_Parse(recv_buffer);
         if(json_root == NULL)
@@ -101,43 +101,90 @@ mpk_api_status_t mpk_api_get_departure_data(mpk_api_departure_t* dep_out)
         }
         
         cJSON* actual_array = cJSON_GetObjectItem(json_root, "actual");
-        if(!cJSON_IsArray(actual_array) || (cJSON_GetArraySize(actual_array) == 0))
+        if(!cJSON_IsArray(actual_array))
         {
             esp_http_client_cleanup(http_client_handle);
             cJSON_Delete(json_root);
-            return MPK_API_ERR_JSON_ARRAY_EMPTY;
+            return MPK_API_ERR_JSON_ARRAY;
         }
 
-        cJSON* first_bus = cJSON_GetArrayItem(actual_array,0);
+        dep_download_count = cJSON_GetArraySize(actual_array);
+        if((dep_download_count == 0) || (dep_download_count >= MAX_DOWNLOADED_DEPARTURES))
+        {
+            esp_http_client_cleanup(http_client_handle);
+            cJSON_Delete(json_root);
+            return MPK_API_ERR_JSON_ARRAY;
+        }
 
-        cJSON* bus_line = cJSON_GetObjectItem(first_bus, "patternText");
-        cJSON* bus_direction = cJSON_GetObjectItem(first_bus, "direction");
-        cJSON* bus_dep_time_live = cJSON_GetObjectItem(first_bus, "actualTime");
-        cJSON* bus_dep_time_planned = cJSON_GetObjectItem(first_bus, "plannedTime");
-        cJSON* bus_actualRelativeTime = cJSON_GetObjectItem(first_bus, "actualRelativeTime");
-        cJSON* bus_status = cJSON_GetObjectItem(first_bus, "status");
+        Debug("Pobrano: %d busow",dep_download_count);
 
-        if(cJSON_IsString(bus_line)) strncpy(dep_out->line,bus_line->valuestring,sizeof(dep_out->line)-1);
-        else api_status = MPK_API_ERR_JSON_PARSE;
-        if(cJSON_IsString(bus_direction)) strncpy(dep_out->direction,bus_direction->valuestring,sizeof(dep_out->direction)-1);
-        else api_status = MPK_API_ERR_JSON_PARSE;
-        if(cJSON_IsString(bus_dep_time_live)) strncpy(dep_out->dep_time_live,bus_dep_time_live->valuestring,sizeof(dep_out->dep_time_live)-1);
-        else api_status = MPK_API_ERR_JSON_PARSE;
-        if(cJSON_IsString(bus_dep_time_planned)) strncpy(dep_out->dep_time_planned,bus_dep_time_planned->valuestring,sizeof(dep_out->dep_time_planned)-1);
-        else api_status = MPK_API_ERR_JSON_PARSE;
-        if(cJSON_IsNumber(bus_actualRelativeTime)) dep_out->sec_left_live = bus_actualRelativeTime->valueint;
-        else api_status = MPK_API_ERR_JSON_PARSE;
-        if(cJSON_IsString(bus_status)) strncpy(dep_out->status,bus_status->valuestring,sizeof(dep_out->status)-1);
-        else api_status = MPK_API_ERR_JSON_PARSE;
+        dep_save_count = 0;
+        if(dep_download_count <= MAX_SAVE_DEPARTURES) dep_save_count = dep_download_count;
+        else dep_save_count = MAX_SAVE_DEPARTURES;
+
+        for(uint8_t i=0;i < dep_save_count;i++)
+        {
+            cJSON* dep_new = cJSON_GetArrayItem(actual_array,i);
+
+            cJSON* dep_new_line = cJSON_GetObjectItem(dep_new,"patternText");
+            cJSON* dep_new_direction = cJSON_GetObjectItem(dep_new, "direction");
+            cJSON* dep_new_time_live = cJSON_GetObjectItem(dep_new, "actualTime");
+            cJSON* dep_new_time_scheduled = cJSON_GetObjectItem(dep_new, "plannedTime");
+            cJSON* dep_new_status = cJSON_GetObjectItem(dep_new,"status");
+            cJSON* dep_new_sec_left_live = cJSON_GetObjectItem(dep_new, "actualRelativeTime");
+
+            mpk_api_status_t dep_conv_status = MPK_API_OK;
+            if(!cJSON_IsString(dep_new_line)) dep_conv_status = MPK_API_ERR_CONV_TYPE;
+            if(!cJSON_IsString(dep_new_direction)) dep_conv_status = MPK_API_ERR_CONV_TYPE;
+            if(!cJSON_IsString(dep_new_time_live)) dep_conv_status = MPK_API_ERR_CONV_TYPE;
+            if(!cJSON_IsString(dep_new_time_scheduled)) dep_conv_status = MPK_API_ERR_CONV_TYPE;
+            if(!cJSON_IsString(dep_new_status)) dep_conv_status = MPK_API_ERR_CONV_TYPE;
+            if(!cJSON_IsNumber(dep_new_sec_left_live)) dep_conv_status = MPK_API_ERR_CONV_TYPE;
+
+            if(dep_conv_status != MPK_API_OK)
+            {
+                esp_http_client_cleanup(http_client_handle);
+                cJSON_Delete(json_root);
+                return dep_conv_status;
+            }
+
+            strncpy(dep_internal_buffer[i].line, dep_new_line->valuestring, sizeof(dep_internal_buffer[i].line)-1);
+            strncpy(dep_internal_buffer[i].direction, dep_new_direction->valuestring, sizeof(dep_internal_buffer[i].direction)-1);
+            strncpy(dep_internal_buffer[i].time_live, dep_new_time_live->valuestring, sizeof(dep_internal_buffer[i].time_live)-1);
+            strncpy(dep_internal_buffer[i].time_scheduled, dep_new_time_scheduled->valuestring, sizeof(dep_internal_buffer[i].time_scheduled)-1);
+            strncpy(dep_internal_buffer[i].status, dep_new_status->valuestring, sizeof(dep_internal_buffer[i].status)-1);
+            dep_internal_buffer[i].sec_left_live = dep_new_sec_left_live->valueint;
+        }
 
         cJSON_Delete(json_root);
+        esp_http_client_cleanup(http_client_handle);
+        
+        return MPK_API_OK;
     }
     else
     {
         Debug("Nothing read");
-        api_status = MPK_API_ERR_NOTHING_READ;
+        esp_http_client_cleanup(http_client_handle);
+        
+        return MPK_API_ERR_NOTHING_READ;
     }
+}
 
-    esp_http_client_cleanup(http_client_handle);
-    return api_status;
+mpk_api_status_t mpk_api_get_departure(mpk_api_departure_t* dep_out, uint8_t dep_number)
+{
+    if(dep_out == NULL) return MPK_API_ERR_INPUT;
+    if(recv_buffer == NULL) return MPK_API_ERR_UNINITIALIZED;
+    if(dep_number >= dep_save_count) return MPK_API_ERR_INPUT;
+
+    *dep_out = dep_internal_buffer[dep_number];
+    return MPK_API_OK;
+}
+
+mpk_api_status_t mpk_api_get_departure_save_count(uint8_t* dep_out_count)
+{
+    if(recv_buffer == NULL) return MPK_API_ERR_UNINITIALIZED;
+    if(dep_out_count == NULL) return MPK_API_ERR_INPUT;
+
+    *dep_out_count = dep_download_count;
+    return MPK_API_OK;
 }

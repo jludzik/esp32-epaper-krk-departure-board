@@ -21,13 +21,11 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
     if(event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START)
     {
         Debug("Wi-Fi started, connecting: %s...", WIFI_SSID);
-        //SP_LOGI(TAG, "Wi-Fi started, connecting: %s...", WIFI_SSID);
         esp_wifi_connect();
     }
     else if(event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED)
     {
         Debug("Wi-Fi disconnected, retrying...");
-        //ESP_LOGW(TAG, "Wi-Fi disconnected, retrying...");
         esp_wifi_connect();
     }
     else if(event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)
@@ -36,7 +34,6 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
 #ifdef DEBUG      
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         Debug("Got IP: " IPSTR, IP2STR(&event->ip_info.ip));
-        //ESP_LOGI(TAG, "Got IP: " IPSTR, IP2STR(&event->ip_info.ip));
 #endif
     }
 }
