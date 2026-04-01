@@ -2,6 +2,7 @@
 #include "mpk_api.h"
 #include "ntp_connect.h"
 #include "debug.h"
+#include "epaper_layout.h"
 
 #include "DEV_Config.h"
 #include "EPD_4in2_V2.h"
@@ -13,69 +14,105 @@
 void app_main(void)
 {
     wifi_manager_init_sta();
+
     ntp_connect();
+
     mpk_api_init();
-    mpk_api_update_departure_buffer();
 
     DEV_Module_Init();
-    EPD_4IN2_V2_Init();
-    
-    EPD_4IN2_V2_Clear();
-    DEV_Delay_ms(2000);
-    
-    uint8_t* Image = (uint8_t*)malloc(EPD_4IN2_V2_SIZE);
-    if(Image == NULL)
-    {
-        Debug("MALLOC ERROR");
-        return;
-    }
-    const char text_line1[] = "UR Al. 29 Listopada";
-    Paint_NewImage(Image,EPD_4IN2_V2_WIDTH,EPD_4IN2_V2_HEIGHT,0,WHITE);
-    Paint_SelectImage(Image);
-    Paint_Clear(WHITE);
 
-    Paint_DrawRectangle(2,2,398,40,BLACK,DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
-    Paint_DrawString_EN(10,10,text_line1,&Font24,BLACK,WHITE);
+    layout_init();
 
-    EPD_4IN2_V2_Display(Image);
-    Debug("..");
-    DEV_Delay_ms(2000);
-    EPD_4IN2_V2_Sleep();
+    char text_title[] = "UR Al. 29 Listopada";
+    const layout_content_t header_content = {
+        .left_text = "Linia\0",
+        .main_text = "Kierunek\0",
+        .right_text = "Odjazd\0"
+    };
 
-    mpk_api_departure_t test_dep;
+    layout_set_title(text_title);
+    layout_set_header(&header_content);
+
+    mpk_api_status_t dep_update_status;
+    uint8_t dep_count = 0;
+    mpk_api_departure_t dep_new;
+    layout_content_t dep_new_layout;
 
     while(1)
     {
-        EPD_4IN2_V2_Init_Fast(Seconds_1_5S); 
-        DEV_Delay_ms(2000);
+        layout_clear_content();
 
-        mpk_api_status_t status = mpk_api_get_departure(&test_dep, 1);
-        if(status == MPK_API_OK)
+        dep_update_status = mpk_api_update_departure_buffer();
+        if(dep_update_status == MPK_API_OK)
         {
-            Debug("Line: %s, Direction: %s, sec to left: %d\n", test_dep.line, test_dep.direction, test_dep.sec_left_live);
+            mpk_api_get_departure_save_count(&dep_count);
 
-            int min = test_dep.sec_left_live / 60;
-            char time_str[16];
-            snprintf(time_str, sizeof(time_str), "%d min", min);
-            
-            Paint_DrawRectangle(10, 100, 300, 250, WHITE, DOT_PIXEL_1X1, DRAW_FILL_FULL);
-            
-            Paint_DrawString_EN(10, 100, test_dep.line, &Font16, BLACK, WHITE);
-            Paint_DrawString_EN(10, 150, test_dep.direction, &Font16, BLACK, WHITE);
-            Paint_DrawString_EN(10, 200, time_str, &Font16, BLACK, WHITE);
+            for(uint8_t i=0;i<dep_count;i++)
+            {
+                mpk_api_get_departure(&dep_new, i);
 
-            Debug("DISP FAST START\n");
-            EPD_4IN2_V2_Display_Fast(Image);
-            DEV_Delay_ms(2000);
-            Debug("DISP FAST DONE\n");
+                int min = dep_new.sec_left_live / 60;
+                snprintf(dep_new_layout.right_text, sizeof(dep_new_layout.right_text), "%d min", min);
+
+                strncpy(dep_new_layout.left_text, dep_new.line, sizeof(dep_new_layout.left_text));
+                strncpy(dep_new_layout.main_text, dep_new.direction, sizeof(dep_new_layout.main_text));
+                //strncpy(dep_new_layout.right_text, dep_new.sec_left_live, sizeof(dep_new_layout.right_text));
+                layout_set_content(&dep_new_layout,i);
+
+                Debug("Line: %s, Direction: %s, sec to left: %d\n", dep_new.line, dep_new.direction, dep_new.sec_left_live);
+            }
+
+            layout_push_to_screen(); 
         }
         else
         {
-            Debug("BLAD POBIERANIA API - ekran nie zostanie odswiezony: %d\n", status);
+            Debug("BLAD POBIERANIA API - ekran nie zostanie odswiezony: %d\n", dep_update_status);
         }
 
-        EPD_4IN2_V2_Sleep();
-
-        DEV_Delay_ms(10000);
+        DEV_Delay_ms(20000);
     }
 }
+//TODO
+//ZBYT DLUGIE NAZWY UCIAC DODAC KROPKE
+//POPRAWIC LICZENIE MINUT PORPZEZ STWORZEINE FUNKCJI PARSE LUB CALCULATE MIN
+//POLSKIE ZNAKI
+
+
+
+/*
+layout_content_t sample_content0 = {
+        .left_text = "199\0",
+        .main_text = "Pradnik Czerwony P+R\0",
+        .right_text = "1 min\0"
+    };
+
+    layout_content_t sample_content1 = {
+        .left_text = "503\0",
+        .main_text = "Nowy Biezanow Poludnie\0",
+        .right_text = "5 min\0"
+    };
+
+    layout_content_t sample_content2 = {
+        .left_text = "139\0",
+        .main_text = "Przybyszewskiego\0",
+        .right_text = "11 min\0"
+    };
+
+    layout_content_t sample_content3 = {
+        .left_text = "159\0",
+        .main_text = "Cichy Kacik\0",
+        .right_text = "14 min\0"
+    };
+
+   layout_content_t sample_content4 = {
+        .left_text = "169\0",
+        .main_text = "Zajezdnia Wola Duchacka\0",
+        .right_text = "18 min\0"
+    };
+ layout_set_content(&sample_content0, 0);
+    layout_set_content(&sample_content1, 1);
+    layout_set_content(&sample_content2, 2);
+    layout_set_content(&sample_content3, 3);
+    layout_set_content(&sample_content4, 4);
+
+*/
