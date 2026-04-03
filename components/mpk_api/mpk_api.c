@@ -152,8 +152,8 @@ mpk_api_status_t mpk_api_update_departure_buffer(void)
             mpk_api_parse_line(dep_new_line->valuestring,dep_internal_buffer[i].line);
             mpk_api_parse_direction(dep_new_direction->valuestring, dep_internal_buffer[i].direction);
             mpk_api_parse_actualRelativeTime(dep_new_sec_left_live->valueint,dep_internal_buffer[i].sec_left_live);
-            dep_internal_buffer[i].status = mpk_api_parse_state(dep_new_status->valuestring);
-
+            mpk_api_parse_state(dep_new_status->valuestring, &dep_internal_buffer[i].status);
+            
             Debug("STATUS: %d",dep_internal_buffer[i].status);
         }
 #ifdef DEBUG
@@ -193,35 +193,189 @@ mpk_api_status_t mpk_api_get_departure_save_count(uint8_t* dep_out_count)
     return MPK_API_OK;
 }
 
-mpk_api_state_t mpk_api_parse_state(char* dep_status)
+static void remove_polish_diacritics(char* text)
 {
-    if(dep_status == NULL) return MPK_API_STATE_UNKNOWN;
+    uint8_t read_i = 0;
+    uint8_t write_i = 0;
+
+    while(text[read_i] != '\0')
+    {
+        switch((unsigned char)text[read_i])
+        {
+            case (unsigned char)0xC3:
+                if(((unsigned char)text[read_i+1]) == (unsigned char)0x93)         //Ó
+                {
+                    text[write_i] = 'O';
+                    write_i++;
+                    read_i += 2;
+                }
+                else if(((unsigned char)text[read_i+1]) == (unsigned char)0xB3)    //ó
+                {
+                    text[write_i] = 'o';
+                    write_i++;
+                    read_i += 2;
+                }
+                else
+                {
+                    text[write_i] = text[read_i];
+                    write_i++;
+                    read_i++;
+                }
+            break;
+            case (unsigned char)0xC4:
+                if(((unsigned char)text[read_i+1]) == (unsigned char)0x84)         //Ą
+                {
+                    text[write_i] = 'A';
+                    write_i++;
+                    read_i += 2;
+                }
+                else if(((unsigned char)text[read_i+1]) == (unsigned char)0x85)    //ą
+                {
+                    text[write_i] = 'a';
+                    write_i++;
+                    read_i += 2;
+                }
+                else if(((unsigned char)text[read_i+1]) == (unsigned char)0x86)    //Ć
+                {
+                    text[write_i] = 'C';
+                    write_i++;
+                    read_i += 2;
+                }
+                else if(((unsigned char)text[read_i+1]) == (unsigned char)0x87)    //ć
+                {
+                    text[write_i] = 'c';
+                    write_i++;
+                    read_i += 2;
+                }
+                else if(((unsigned char)text[read_i+1]) == (unsigned char)0x98)    //Ę
+                {
+                    text[write_i] = 'E';
+                    write_i++;
+                    read_i += 2;
+                }
+                else if(((unsigned char)text[read_i+1]) == (unsigned char)0x99)    //ę
+                {
+                    text[write_i] = 'e';
+                    write_i++;
+                    read_i += 2;
+                }
+                else
+                {
+                    text[write_i] = text[read_i];
+                    write_i++;
+                    read_i++;
+                }
+            break;
+            case (unsigned char)0xC5:
+                if(((unsigned char)text[read_i+1]) == (unsigned char)0x81)         //Ł
+                {
+                    text[write_i] = 'L';
+                    write_i++;
+                    read_i += 2;
+                }
+                else if(((unsigned char)text[read_i+1]) == (unsigned char)0x82)         //ł
+                {
+                    text[write_i] = 'l';
+                    write_i++;
+                    read_i += 2;
+                }
+                else if(((unsigned char)text[read_i+1]) == (unsigned char)0x83)         //Ń
+                {
+                    text[write_i] = 'N';
+                    write_i++;
+                    read_i += 2;
+                }
+                else if(((unsigned char)text[read_i+1]) == (unsigned char)0x84)         //ń
+                {
+                    text[write_i] = 'n';
+                    write_i++;
+                    read_i += 2;
+                }
+                else if(((unsigned char)text[read_i+1]) == (unsigned char)0x9A)         //Ś
+                {
+                    text[write_i] = 'S';
+                    write_i++;
+                    read_i += 2;
+                }
+                else if(((unsigned char)text[read_i+1]) == (unsigned char)0x9B)         //ś
+                {
+                    text[write_i] = 's';
+                    write_i++;
+                    read_i += 2;
+                }
+                else if(((unsigned char)text[read_i+1]) == (unsigned char)0xB9)         //Ź
+                {
+                    text[write_i] = 'Z';
+                    write_i++;
+                    read_i += 2;
+                }
+                else if(((unsigned char)text[read_i+1]) == (unsigned char)0xBA)         //ź
+                {
+                    text[write_i] = 'z';
+                    write_i++;
+                    read_i += 2;
+                }
+                else if(((unsigned char)text[read_i+1]) == (unsigned char)0xBB)         //Ż
+                {
+                    text[write_i] = 'Z';
+                    write_i++;
+                    read_i += 2;
+                }
+                else if(((unsigned char)text[read_i+1]) == (unsigned char)0xBC)         //ż
+                {
+                    text[write_i] = 'z';
+                    write_i++;
+                    read_i += 2;
+                }
+                else
+                {
+                    text[write_i] = text[read_i];
+                    write_i++;
+                    read_i++;
+                }
+            break;
+            default:
+                text[write_i] = text[read_i];
+                write_i++;
+                read_i++;
+            break;
+        }
+    }
+
+    text[write_i] = '\0';
+}
+
+mpk_api_status_t mpk_api_parse_state(char* dep_status, mpk_api_state_t* dst_status)
+{
+    if(dep_status == NULL) return MPK_API_ERR_INPUT;
 
     if(strcmp(dep_status,"PLANNED") == 0)
     {
         Debug("PLANNED OK");
-        return MPK_API_STATE_PLANNED;
+        *dst_status = MPK_API_STATE_PLANNED;
     }
     else if(strcmp(dep_status,"PREDICTED") == 0)
     {
         Debug("PREDICTED OK");
-        return MPK_API_STATE_PREDICTED;
+        *dst_status = MPK_API_STATE_PREDICTED;
     }
     else if(strcmp(dep_status,"DEPARTED") == 0)
     {
         Debug("DEPARTED OK");
-        return MPK_API_STATE_DEPARTED; 
+        *dst_status = MPK_API_STATE_DEPARTED;
     }
     else if(strcmp(dep_status, "STOPPING") == 0)
     {
         Debug("STOPPING OK");
-        return MPK_API_STATE_STOPPING;
+        *dst_status = MPK_API_STATE_STOPPING;
     }
     else
     {
-        Debug("UNKNOWN");
-        return MPK_API_STATE_UNKNOWN;  
+        Debug("UNKNOWN OK");
+        *dst_status = MPK_API_STATE_UNKNOWN;
     }
+
+    return MPK_API_OK;
 }
 
 mpk_api_status_t mpk_api_parse_actualRelativeTime(int16_t dep_actualRelativeTimeSec, char* dst_sec_left_live)
@@ -240,14 +394,19 @@ mpk_api_status_t mpk_api_parse_direction(char* dep_direction, char* dst_directio
     if(dep_direction == NULL) return MPK_API_ERR_INPUT;
     if(dst_direction == NULL) return MPK_API_ERR_INPUT;
 
-    if(strlen(dep_direction) >= DIRECTION_TEXT_MAX_LEN)
-    {
-       snprintf(dst_direction, DIRECTION_TEXT_MAX_LEN, "%s", dep_direction);
-       dst_direction[DIRECTION_TEXT_MAX_LEN-2] = '.';
-       dst_direction[DIRECTION_TEXT_MAX_LEN-1] = '\0';
+    char temp_buf[TEMP_DIRECTION_BUF_SIZE];
+    memset(temp_buf,'\0',TEMP_DIRECTION_BUF_SIZE);
+    strncpy(temp_buf,dep_direction,TEMP_DIRECTION_BUF_SIZE-1);
 
+    remove_polish_diacritics(temp_buf);
+
+    if(strlen(temp_buf) >= DIRECTION_TEXT_LEN)
+    {
+       strncpy(dst_direction,temp_buf,DIRECTION_TEXT_LEN);
+       dst_direction[DIRECTION_TEXT_LEN-2] = '.';
+       dst_direction[DIRECTION_TEXT_LEN-1] = '\0';
     }
-    else snprintf(dst_direction, DIRECTION_TEXT_MAX_LEN, "%s", dep_direction);
+    else strncpy(dst_direction,temp_buf,DIRECTION_TEXT_LEN);
     
     return MPK_API_OK;
 }
@@ -257,23 +416,15 @@ mpk_api_status_t mpk_api_parse_line(char* dep_line, char* dst_line)
     if(dep_line == NULL) return MPK_API_ERR_INPUT;
     if(dst_line == NULL) return MPK_API_ERR_INPUT;
 
-    if(strlen(dep_line) >= LINE_TEXT_MAX_LEN)
+    if(strlen(dep_line) >= LINE_TEXT_LEN)
     {
-       snprintf(dst_line, LINE_TEXT_MAX_LEN, "%s", dep_line);
-       dst_line[LINE_TEXT_MAX_LEN-2] = '.';
-       dst_line[LINE_TEXT_MAX_LEN-1] = '\0';
+       snprintf(dst_line, LINE_TEXT_LEN, "%s", dep_line);
+       dst_line[LINE_TEXT_LEN-2] = '.';
+       dst_line[LINE_TEXT_LEN-1] = '\0';
 
     }
-    else snprintf(dst_line, LINE_TEXT_MAX_LEN, "%s", dep_line);
+    else snprintf(dst_line, LINE_TEXT_LEN, "%s", dep_line);
 
     return MPK_API_OK;
 }
 
-//cJSON* dep_new_time_live = cJSON_GetObjectItem(dep_new, "actualTime");
-//cJSON* dep_new_time_scheduled = cJSON_GetObjectItem(dep_new, "plannedTime");
-
-//if(!cJSON_IsString(dep_new_time_live)) dep_conv_info = MPK_API_ERR_CONV_TYPE;
-//if(!cJSON_IsString(dep_new_time_scheduled)) dep_conv_info = MPK_API_ERR_CONV_TYPE;
-
-//strncpy(dep_internal_buffer[i].time_live, dep_new_time_live->valuestring, sizeof(dep_internal_buffer[i].time_live)-1);
-//strncpy(dep_internal_buffer[i].time_scheduled, dep_new_time_scheduled->valuestring, sizeof(dep_internal_buffer[i].time_scheduled)-1);

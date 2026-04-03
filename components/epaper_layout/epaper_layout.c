@@ -27,7 +27,6 @@ layout_status_t layout_init(void)
     Paint_NewImage(Image,EPD_4IN2_V2_WIDTH,EPD_4IN2_V2_HEIGHT,0,WHITE);
     Paint_SelectImage(Image);
     Paint_Clear(WHITE);
-    Paint_DrawRectangle(2,2,398,40,BLACK,DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
 
     EPD_4IN2_V2_Display(Image);
     DEV_Delay_ms(2000);
@@ -51,28 +50,28 @@ layout_status_t layout_push_to_screen(void)
     return LAYOUT_OK;
 }
 
-layout_status_t layout_set_title(char* text)
+layout_status_t layout_set_title(const char* text)
 {
     if(text == NULL) return LAYOUT_ERR_INPUT;
     if(Image == NULL) return LAYOUT_ERR_UNINITIALIZED;
     if(strlen(text) > MAX_TITLE_LEN) return LAYOUT_ERR_INPUT;
     
-    Paint_DrawRectangle(4,4,396,38,WHITE,DOT_PIXEL_1X1,DRAW_FILL_FULL);
+    Paint_DrawRectangle(2,2,398,40,BLACK,DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
     Paint_DrawString_EN(10,10,text,&Font24,BLACK,WHITE);
 
     return LAYOUT_OK;
 }
 
-layout_status_t layout_set_header(const layout_content_t* content)
+layout_status_t layout_set_header(const layout_header_t* header)
 {
     if(Image == NULL) return LAYOUT_ERR_UNINITIALIZED;
-    if(content == NULL) return LAYOUT_ERR_INPUT;
+    if(header == NULL) return LAYOUT_ERR_INPUT;
 
     Paint_DrawRectangle(X_L_MARGIN,Y_START_HEADER,X_R_MARGIN,(Y_START_HEADER+EL_HEIGHT*2),BLACK,DOT_PIXEL_1X1,DRAW_FILL_EMPTY);
 
-    Paint_DrawString_EN(X_SECTION_H_0,(Y_START_HEADER + ((EL_HEIGHT*2)-Font20.Height)/2),content->left_text,&Font20,BLACK,WHITE);
-    Paint_DrawString_EN(X_SECTION_H_1,(Y_START_HEADER + ((EL_HEIGHT*2)-Font20.Height)/2),content->main_text,&Font20,BLACK,WHITE);
-    Paint_DrawString_EN(X_SECTION_H_2,(Y_START_HEADER + ((EL_HEIGHT*2)-Font20.Height)/2),content->right_text,&Font20,BLACK,WHITE);
+    Paint_DrawString_EN(X_SECTION_H_0,(Y_START_HEADER + ((EL_HEIGHT*2)-Font20.Height)/2),header->left_text,&Font20,BLACK,WHITE);
+    Paint_DrawString_EN(X_SECTION_H_1,(Y_START_HEADER + ((EL_HEIGHT*2)-Font20.Height)/2),header->main_text,&Font20,BLACK,WHITE);
+    Paint_DrawString_EN(X_SECTION_H_2,(Y_START_HEADER + ((EL_HEIGHT*2)-Font20.Height)/2),header->right_text,&Font20,BLACK,WHITE);
 
     return LAYOUT_OK;
 }

@@ -4,15 +4,13 @@
 #include <stdint.h>
 
 #define MAX_HTTP_RECV_BUFFER 20*1024
+#define TEMP_DIRECTION_BUF_SIZE 64
 #define MAX_DOWNLOADED_DEPARTURES 255
 #define MAX_SAVE_DEPARTURES 10
 
+#define DIRECTION_TEXT_LEN 24   //23+'\0'
+#define LINE_TEXT_LEN 4         //3+'\0'
 #define SEC_LEFT_LIVE_LEN 10
-#define LINE_LEN 10
-#define DIRECTION_LEN 32
-
-#define DIRECTION_TEXT_MAX_LEN 24   //23+'\0'
-#define LINE_TEXT_MAX_LEN 4         //3+'\0'
 
 typedef enum {
     MPK_API_STATE_UNKNOWN = 0x00,
@@ -38,12 +36,10 @@ typedef enum {
 } mpk_api_status_t;
 
 typedef struct {
-    char line[LINE_LEN];                            //patternText
-    char direction[DIRECTION_LEN];                  //direction
-    char sec_left_live[SEC_LEFT_LIVE_LEN];          //actualRelativeTime
-    //char time_live[8];                            //actualTime
-    //char time_scheduled[8];                       //plannedTime
-    mpk_api_state_t status;                         //status
+    char line[LINE_TEXT_LEN];                     //patternText
+    char direction[DIRECTION_TEXT_LEN];           //direction
+    char sec_left_live[SEC_LEFT_LIVE_LEN];        //actualRelativeTime
+    mpk_api_state_t status;                       //status
 } mpk_api_departure_t;
 
 mpk_api_status_t mpk_api_init(void);
@@ -54,7 +50,7 @@ mpk_api_status_t mpk_api_get_departure(mpk_api_departure_t* dep_out, uint8_t dep
 
 mpk_api_status_t mpk_api_get_departure_save_count(uint8_t* dep_out_count);
 
-mpk_api_state_t mpk_api_parse_state(char* dep_status);
+mpk_api_status_t mpk_api_parse_state(char* dep_status, mpk_api_state_t* dst_status);
 
 mpk_api_status_t mpk_api_parse_actualRelativeTime(int16_t dep_actualRelativeTimeSec, char* dst_sec_left_live);
 
