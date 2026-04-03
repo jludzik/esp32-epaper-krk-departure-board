@@ -133,16 +133,12 @@ mpk_api_status_t mpk_api_update_departure_buffer(void)
 
             cJSON* dep_new_line = cJSON_GetObjectItem(dep_new,"patternText");
             cJSON* dep_new_direction = cJSON_GetObjectItem(dep_new, "direction");
-            //cJSON* dep_new_time_live = cJSON_GetObjectItem(dep_new, "actualTime");
-            //cJSON* dep_new_time_scheduled = cJSON_GetObjectItem(dep_new, "plannedTime");
             cJSON* dep_new_sec_left_live = cJSON_GetObjectItem(dep_new, "actualRelativeTime");
             cJSON* dep_new_status = cJSON_GetObjectItem(dep_new,"status");
 
             mpk_api_status_t dep_conv_info = MPK_API_OK;
             if(!cJSON_IsString(dep_new_line)) dep_conv_info = MPK_API_ERR_CONV_TYPE;
             if(!cJSON_IsString(dep_new_direction)) dep_conv_info = MPK_API_ERR_CONV_TYPE;
-            //if(!cJSON_IsString(dep_new_time_live)) dep_conv_info = MPK_API_ERR_CONV_TYPE;
-            //if(!cJSON_IsString(dep_new_time_scheduled)) dep_conv_info = MPK_API_ERR_CONV_TYPE;
             if(!cJSON_IsNumber(dep_new_sec_left_live)) dep_conv_info = MPK_API_ERR_CONV_TYPE;
             if(!cJSON_IsString(dep_new_status)) dep_conv_info = MPK_API_ERR_CONV_TYPE;
 
@@ -153,12 +149,11 @@ mpk_api_status_t mpk_api_update_departure_buffer(void)
                 return dep_conv_info;
             }
 
-            strncpy(dep_internal_buffer[i].line, dep_new_line->valuestring, sizeof(dep_internal_buffer[i].line)-1);
-            strncpy(dep_internal_buffer[i].direction, dep_new_direction->valuestring, sizeof(dep_internal_buffer[i].direction)-1);
-            //strncpy(dep_internal_buffer[i].time_live, dep_new_time_live->valuestring, sizeof(dep_internal_buffer[i].time_live)-1);
-            //strncpy(dep_internal_buffer[i].time_scheduled, dep_new_time_scheduled->valuestring, sizeof(dep_internal_buffer[i].time_scheduled)-1);
-            dep_internal_buffer[i].sec_left_live = dep_new_sec_left_live->valueint;
+            mpk_api_parse_line(dep_new_line->valuestring,dep_internal_buffer[i].line);
+            mpk_api_parse_direction(dep_new_direction->valuestring, dep_internal_buffer[i].direction);
+            mpk_api_parse_actualRelativeTime(dep_new_sec_left_live->valueint,dep_internal_buffer[i].sec_left_live);
             dep_internal_buffer[i].status = mpk_api_parse_state(dep_new_status->valuestring);
+
             Debug("STATUS: %d",dep_internal_buffer[i].status);
         }
 #ifdef DEBUG
@@ -198,27 +193,26 @@ mpk_api_status_t mpk_api_get_departure_save_count(uint8_t* dep_out_count)
     return MPK_API_OK;
 }
 
-mpk_api_state_t mpk_api_parse_state(char* status)
+mpk_api_state_t mpk_api_parse_state(char* dep_status)
 {
-    if(recv_buffer == NULL) return MPK_API_STATE_UNKNOWN;
-    if(status == NULL) return MPK_API_STATE_UNKNOWN;
+    if(dep_status == NULL) return MPK_API_STATE_UNKNOWN;
 
-    if(strcmp(status,"PLANNED") == 0)
+    if(strcmp(dep_status,"PLANNED") == 0)
     {
         Debug("PLANNED OK");
         return MPK_API_STATE_PLANNED;
     }
-    else if(strcmp(status,"PREDICTED") == 0)
+    else if(strcmp(dep_status,"PREDICTED") == 0)
     {
         Debug("PREDICTED OK");
         return MPK_API_STATE_PREDICTED;
     }
-    else if(strcmp(status,"DEPARTED") == 0)
+    else if(strcmp(dep_status,"DEPARTED") == 0)
     {
         Debug("DEPARTED OK");
         return MPK_API_STATE_DEPARTED; 
     }
-    else if(strcmp(status, "STOPPING") == 0)
+    else if(strcmp(dep_status, "STOPPING") == 0)
     {
         Debug("STOPPING OK");
         return MPK_API_STATE_STOPPING;
@@ -230,14 +224,56 @@ mpk_api_state_t mpk_api_parse_state(char* status)
     }
 }
 
-/*
-mpk_api_status_t mpk_api_parse_planned(void)
+mpk_api_status_t mpk_api_parse_actualRelativeTime(int16_t dep_actualRelativeTimeSec, char* dst_sec_left_live)
 {
+    if(dst_sec_left_live == NULL) return MPK_API_ERR_INPUT;
 
+    int16_t dep_actualRelativeTimeMin = dep_actualRelativeTimeSec / 60;
+
+    snprintf(dst_sec_left_live, SEC_LEFT_LIVE_LEN, "%d min", dep_actualRelativeTimeMin);
+
+    return MPK_API_OK;
 }
 
-mpk_api_status_t mpk_api_parse_predicted(void)
+mpk_api_status_t mpk_api_parse_direction(char* dep_direction, char* dst_direction)
 {
+    if(dep_direction == NULL) return MPK_API_ERR_INPUT;
+    if(dst_direction == NULL) return MPK_API_ERR_INPUT;
 
+    if(strlen(dep_direction) >= DIRECTION_TEXT_MAX_LEN)
+    {
+       snprintf(dst_direction, DIRECTION_TEXT_MAX_LEN, "%s", dep_direction);
+       dst_direction[DIRECTION_TEXT_MAX_LEN-2] = '.';
+       dst_direction[DIRECTION_TEXT_MAX_LEN-1] = '\0';
+
+    }
+    else snprintf(dst_direction, DIRECTION_TEXT_MAX_LEN, "%s", dep_direction);
+    
+    return MPK_API_OK;
 }
-*/
+
+mpk_api_status_t mpk_api_parse_line(char* dep_line, char* dst_line)
+{
+    if(dep_line == NULL) return MPK_API_ERR_INPUT;
+    if(dst_line == NULL) return MPK_API_ERR_INPUT;
+
+    if(strlen(dep_line) >= LINE_TEXT_MAX_LEN)
+    {
+       snprintf(dst_line, LINE_TEXT_MAX_LEN, "%s", dep_line);
+       dst_line[LINE_TEXT_MAX_LEN-2] = '.';
+       dst_line[LINE_TEXT_MAX_LEN-1] = '\0';
+
+    }
+    else snprintf(dst_line, LINE_TEXT_MAX_LEN, "%s", dep_line);
+
+    return MPK_API_OK;
+}
+
+//cJSON* dep_new_time_live = cJSON_GetObjectItem(dep_new, "actualTime");
+//cJSON* dep_new_time_scheduled = cJSON_GetObjectItem(dep_new, "plannedTime");
+
+//if(!cJSON_IsString(dep_new_time_live)) dep_conv_info = MPK_API_ERR_CONV_TYPE;
+//if(!cJSON_IsString(dep_new_time_scheduled)) dep_conv_info = MPK_API_ERR_CONV_TYPE;
+
+//strncpy(dep_internal_buffer[i].time_live, dep_new_time_live->valuestring, sizeof(dep_internal_buffer[i].time_live)-1);
+//strncpy(dep_internal_buffer[i].time_scheduled, dep_new_time_scheduled->valuestring, sizeof(dep_internal_buffer[i].time_scheduled)-1);

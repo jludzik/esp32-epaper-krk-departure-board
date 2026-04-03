@@ -4,8 +4,8 @@
 #include <stdint.h>
 
 #define MAX_TITLE_LEN 24
-#define MAX_CONTENT_MAIN_LEN 32
-#define MAX_CONTENT_LEFT_LEN 8
+#define MAX_CONTENT_MAIN_LEN 24     //23+'\0'
+#define MAX_CONTENT_LEFT_LEN 6      //5+'\0'
 #define MAX_CONTENT_RIGHT_LEN 10
 #define MAX_CONTENT_ELEMENTS 5
 
@@ -17,11 +17,11 @@
 #define Y_START_POS4 260
 
 #define X_SECTION_H_0 6
-#define X_SECTION_H_1 136
+#define X_SECTION_H_1 126
 #define X_SECTION_H_2 306
 
 #define X_SECTION_0 6
-#define X_SECTION_1 56
+#define X_SECTION_1 46
 #define X_SECTION_2 326
 
 #define X_L_MARGIN 4

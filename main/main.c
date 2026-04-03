@@ -25,9 +25,9 @@ void app_main(void)
 
     char text_title[] = "UR Al. 29 Listopada";
     const layout_content_t header_content = {
-        .left_text = "Linia\0",
-        .main_text = "Kierunek\0",
-        .right_text = "Odjazd\0"
+        .left_text = "Linia",
+        .main_text = "Kierunek",
+        .right_text = "Odjazd"
     };
 
     layout_set_title(text_title);
@@ -51,15 +51,12 @@ void app_main(void)
             {
                 mpk_api_get_departure(&dep_new, i);
 
-                int min = dep_new.sec_left_live / 60;
-                snprintf(dep_new_layout.right_text, sizeof(dep_new_layout.right_text), "%d min", min);
-
                 strncpy(dep_new_layout.left_text, dep_new.line, sizeof(dep_new_layout.left_text));
                 strncpy(dep_new_layout.main_text, dep_new.direction, sizeof(dep_new_layout.main_text));
-                //strncpy(dep_new_layout.right_text, dep_new.sec_left_live, sizeof(dep_new_layout.right_text));
+                strncpy(dep_new_layout.right_text, dep_new.sec_left_live, sizeof(dep_new_layout.right_text));
                 layout_set_content(&dep_new_layout,i);
 
-                Debug("Line: %s, Direction: %s, sec to left: %d\n", dep_new.line, dep_new.direction, dep_new.sec_left_live);
+                Debug("Linia: %s Kierunek: %s Odjazd: %s\n", dep_new.line, dep_new.direction, dep_new.sec_left_live);
             }
 
             layout_push_to_screen(); 
@@ -72,11 +69,13 @@ void app_main(void)
         DEV_Delay_ms(20000);
     }
 }
+
 //TODO
 //ZBYT DLUGIE NAZWY UCIAC DODAC KROPKE
 //POPRAWIC LICZENIE MINUT PORPZEZ STWORZEINE FUNKCJI PARSE LUB CALCULATE MIN
 //POLSKIE ZNAKI
-
+//FILTROWANIE KIERUNKOW
+//NIE POKAZUJ WARTOSCI <= 0 min
 
 
 /*
