@@ -127,32 +127,3 @@ void DEV_Module_Exit(void)
     gpio_reset_pin(EPD_RST_PIN);
     gpio_reset_pin(EPD_BUSY_PIN);
 }
-
-/* OLD
-void DEV_GPIO_Init(void)
-{
-    DEV_GPIO_Mode(EPD_BUSY_PIN, 0);
-	DEV_GPIO_Mode(EPD_RST_PIN, 1);
-	DEV_GPIO_Mode(EPD_DC_PIN, 1);
-	DEV_GPIO_Mode(EPD_CS_PIN, 1);
-    
-	DEV_Digital_Write(EPD_CS_PIN, 1);
-	DEV_Digital_Write(EPD_RST_PIN, 1);
-}
-
-void DEV_GPIO_Mode(UWORD Pin, UWORD Mode)
-{
-    gpio_reset_pin((gpio_num_t)Pin);
-
-	if (Mode == 0 || Mode == GPIO_MODE_INPUT)
-	{
-		gpio_set_direction((gpio_num_t)Pin, GPIO_MODE_INPUT);
-		gpio_set_pull_mode((gpio_num_t)Pin, GPIO_PULLUP_ONLY); 
-	}
-	else if(Mode == 1)
-	{
-    	gpio_set_direction((gpio_num_t)Pin, GPIO_MODE_OUTPUT);
-	}
-}
-
-*/

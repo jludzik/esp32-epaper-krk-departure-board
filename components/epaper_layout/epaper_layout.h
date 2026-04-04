@@ -7,7 +7,6 @@
 //--------- TITLE --------------
 #define MAX_TITLE_LEN 24
 
-
 //--------- HEADER --------------
 #define MAX_HEADER_LEFT_LEN 6
 #define MAX_HEADER_MAIN_LEN 24

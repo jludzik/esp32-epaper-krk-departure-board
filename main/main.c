@@ -11,13 +11,18 @@
 
 void app_main(void)
 {
+    switch()
+
+    wifi_reset_key_config();
+    DEV_Module_Init();
+    layout_init();
+
+    wifi_manager_check_reset();
     wifi_manager_init_sta();
+
     ntp_connect();
     mpk_api_init();
 
-    DEV_Module_Init();
-
-    layout_init();
     layout_set_title(epaper_layout_title);
     layout_set_header(&epaper_layout_header);
 
@@ -49,16 +54,8 @@ void app_main(void)
 
             layout_push_to_screen(); 
         }
-        else
-        {
-            Debug("BLAD POBIERANIA API - ekran nie zostanie odswiezony: %d\n", dep_update_status);
-        }
+        else Debug("BLAD POBIERANIA API - ekran nie zostanie odswiezony: %d\n", dep_update_status);
 
-        DEV_Delay_ms(20000);
+        DEV_Delay_ms(40000);
     }
 }
-
-//TODO
-//POLSKIE ZNAKI
-//FILTROWANIE KIERUNKOW
-//NIE POKAZUJ WARTOSCI <= 0 min
