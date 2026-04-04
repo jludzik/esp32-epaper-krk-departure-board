@@ -13,6 +13,7 @@ An ESP32 project that downloads live transit data for MPK Kraków and shows it o
  - Easy Setup: Wi-Fi Provisioning via SoftAP and mobile app (ESP SoftAP Provisioning).
  - Real-time API Integration: Downloads live departure data from MPK Kraków.
  - Stable Architecture: Uses Finite State Machine (FSM) logic for smart error recovery.
+ - Modular MVC Design: Uses a Model-View-Controller pattern to separate the data logic from the presentation layer.
  - Low Power Display: Supports E-Paper screen for high contrast and low energy usage.
  - Hardware Factory Reset: Physical button to erase NVS memory and restart configuration.
 
