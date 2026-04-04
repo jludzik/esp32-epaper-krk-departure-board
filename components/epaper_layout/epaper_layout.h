@@ -3,6 +3,12 @@
 
 #include <stdint.h>
 
+// ---------- WARNING ----------
+#define X_START_WARNING 50
+#define Y_START_WARNING 100
+
+#define X_WIDTH_WARNING 300
+#define Y_HEIGHT_WARNING 100
 
 //--------- TITLE --------------
 #define MAX_TITLE_LEN 24
@@ -19,7 +25,7 @@
 #define X_SECTION_H_2 306
 
 //--------- CONTENT --------------
-#define MAX_CONTENT_MAIN_LEN 24     //23+'\0'
+#define MAX_CONTENT_MAIN_LEN 24
 #define MAX_CONTENT_LEFT_LEN 4
 #define MAX_CONTENT_RIGHT_LEN 10
 
@@ -73,5 +79,9 @@ layout_status_t layout_push_to_screen(void);
 layout_status_t layout_set_header(const layout_header_t* header);
 
 layout_status_t layout_clear_content(void);
+
+layout_status_t layout_set_clear_screen(void);
+
+layout_status_t layout_set_warning_screen(const char* text);
 
 #endif

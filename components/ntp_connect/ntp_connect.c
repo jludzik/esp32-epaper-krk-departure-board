@@ -31,7 +31,7 @@ esp_err_t ntp_connect(void)
         retry++;
         if(retry >= NTP_CONNECT_RETRY_MAX)
         {
-            Debug("ERROR with updating time");
+            Debug("Time synchronization failed.");
             return ESP_FAIL;
         }
     }

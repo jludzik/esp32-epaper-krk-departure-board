@@ -3,7 +3,9 @@
 
 #include "epaper_layout.h"
 
-extern const char epaper_layout_title[];
-extern const layout_header_t epaper_layout_header;
+extern const char layout_warning_wifi_prov[];
+extern const char layout_warning_wifi_init[];
+extern const char layout_title[];
+extern const layout_header_t layout_header;
 
 #endif

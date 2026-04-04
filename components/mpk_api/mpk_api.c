@@ -22,18 +22,18 @@ mpk_api_status_t mpk_api_init(void)
 {
     if(recv_buffer != NULL)
     {
-        Debug("recv_buffer memory already alocated");
+        Debug("Memory for recv_buffer is already allocated.");
         return MPK_API_ERR_MEMORY_ALREADY_ALOCATED;
     }
 
     recv_buffer = (char*)malloc(MAX_HTTP_RECV_BUFFER);
     if(recv_buffer == NULL)
     {
-        Debug("No enough memory on heap for recv_buffer");
+        Debug("Insufficient heap memory for recv_buffer.");
         return MPK_API_ERR_NO_MEMORY;
     }
 
-    Debug("Succesfully alocated %d of memory on heap for recv_buf", MAX_HTTP_RECV_BUFFER);
+    Debug("Successfully allocated %d bytes on heap for recv_buffer.", MAX_HTTP_RECV_BUFFER);
     return MPK_API_OK;
 }
 
@@ -41,7 +41,7 @@ mpk_api_status_t mpk_api_update_departure_buffer(void)
 {
     if(recv_buffer == NULL)
     {
-        Debug("recv_buff not exsist");
+        Debug("recv_buffer is uninitialized.");
         return MPK_API_ERR_UNINITIALIZED;
     }
 
@@ -53,22 +53,20 @@ mpk_api_status_t mpk_api_update_departure_buffer(void)
     esp_http_client_config_t http_config = {
         .url = MPK_API_URL,
         .method = HTTP_METHOD_GET,
-        //.crt_bundle_attach = esp_crt_bundle_attach,
-        //.cert_pem = mpk_cert_pem_start,
         .timeout_ms = 10000
     };
 
     esp_http_client_handle_t http_client_handle = esp_http_client_init(&http_config);
     if(http_client_handle == NULL)
     {
-        Debug("HTTP Client init error");
+        Debug("Failed to initialize HTTP client.");
         return MPK_API_ERR_HTTP;
     }
 
     if(esp_http_client_open(http_client_handle, 0) != ESP_OK)
     {
         esp_http_client_cleanup(http_client_handle);
-        Debug("HTTP connection failed");
+        Debug("HTTP connection failed.");
         return MPK_API_ERR_HTTP;
     }
     Debug("HTTP connected");
@@ -76,13 +74,13 @@ mpk_api_status_t mpk_api_update_departure_buffer(void)
     if(esp_http_client_fetch_headers(http_client_handle) == ESP_FAIL)
     {
         esp_http_client_cleanup(http_client_handle);
-        Debug("HTTP fetch failed");
+        Debug("Failed to fetch data via HTTP.");
         return MPK_API_ERR_FETCH_HEADERS;
     }
 
     if(esp_http_client_get_status_code(http_client_handle) != 200)
     {
-        Debug("HTTP status != 200");
+        Debug("Unexpected HTTP status code (expected 200).");
         esp_http_client_cleanup(http_client_handle);
         return MPK_API_ERR_HTTP;
     }
@@ -122,7 +120,7 @@ mpk_api_status_t mpk_api_update_departure_buffer(void)
             cJSON_Delete(json_root);
             return MPK_API_ERR_JSON_ARRAY;
         }
-        Debug("Pobrano: %d busow",dep_download_count);
+       Debug("Successfully fetched %d departures.", dep_download_count);
 
         if(dep_download_count <= MAX_SAVE_DEPARTURES) dep_save_count = dep_download_count;
         else dep_save_count = MAX_SAVE_DEPARTURES;
@@ -153,12 +151,9 @@ mpk_api_status_t mpk_api_update_departure_buffer(void)
             mpk_api_parse_direction(dep_new_direction->valuestring, dep_internal_buffer[i].direction);
             mpk_api_parse_actualRelativeTime(dep_new_sec_left_live->valueint,dep_internal_buffer[i].sec_left_live);
             mpk_api_parse_state(dep_new_status->valuestring, &dep_internal_buffer[i].status);
-            
-            Debug("STATUS: %d",dep_internal_buffer[i].status);
         }
-#ifdef DEBUG
-            Debug("Zapisano %d busow",dep_save_count);
-#endif
+
+        Debug("Successfully saved %d departures.", dep_save_count);
 
         cJSON_Delete(json_root);
         esp_http_client_cleanup(http_client_handle);
@@ -167,7 +162,7 @@ mpk_api_status_t mpk_api_update_departure_buffer(void)
     }
     else
     {
-        Debug("Nothing read");
+        Debug("No data read from HTTP stream.");
         esp_http_client_cleanup(http_client_handle);
         
         return MPK_API_ERR_NOTHING_READ;
@@ -351,27 +346,22 @@ mpk_api_status_t mpk_api_parse_state(char* dep_status, mpk_api_state_t* dst_stat
 
     if(strcmp(dep_status,"PLANNED") == 0)
     {
-        Debug("PLANNED OK");
         *dst_status = MPK_API_STATE_PLANNED;
     }
     else if(strcmp(dep_status,"PREDICTED") == 0)
     {
-        Debug("PREDICTED OK");
         *dst_status = MPK_API_STATE_PREDICTED;
     }
     else if(strcmp(dep_status,"DEPARTED") == 0)
     {
-        Debug("DEPARTED OK");
         *dst_status = MPK_API_STATE_DEPARTED;
     }
     else if(strcmp(dep_status, "STOPPING") == 0)
     {
-        Debug("STOPPING OK");
         *dst_status = MPK_API_STATE_STOPPING;
     }
     else
     {
-        Debug("UNKNOWN OK");
         *dst_status = MPK_API_STATE_UNKNOWN;
     }
 

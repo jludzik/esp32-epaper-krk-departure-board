@@ -25,13 +25,18 @@ void wifi_reset_key_config(void)
     gpio_set_pull_mode(WIFI_RESET_KEY,GPIO_PULLUP_ONLY);
 }
 
-void wifi_manager_check_reset(void)
+bool wifi_manager_check_reset(void)
 {
     if(gpio_get_level(WIFI_RESET_KEY) == 0)
     {
         Debug("Erasing NVS and Wi-Fi settings...");
+        
         nvs_flash_erase();
+
+        return true;
     }
+
+    return false;
 }
 
 static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)

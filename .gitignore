@@ -77,8 +77,7 @@ Desktop.ini
 *.suo       # Visual Studio Solution User Options
 *.sln.docstates # Visual Studio
 
-# Wifi credentials
-/components/wifi_manager/wifi_credentials.h
+# MPK_API credentials
 /components/mpk_api/mpk_api_credentials.h
 
 # Other

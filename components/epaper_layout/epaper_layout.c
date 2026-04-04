@@ -24,7 +24,7 @@ layout_status_t layout_init(void)
     EPD_4IN2_V2_Clear();
     DEV_Delay_ms(2000);
 
-    Paint_NewImage(Image,EPD_4IN2_V2_WIDTH,EPD_4IN2_V2_HEIGHT,0,WHITE);
+    Paint_NewImage(Image, EPD_4IN2_V2_WIDTH, EPD_4IN2_V2_HEIGHT, 0, WHITE);
     Paint_SelectImage(Image);
     Paint_Clear(WHITE);
 
@@ -50,14 +50,33 @@ layout_status_t layout_push_to_screen(void)
     return LAYOUT_OK;
 }
 
+layout_status_t layout_set_clear_screen(void)
+{
+    if(Image == NULL) return LAYOUT_ERR_UNINITIALIZED;
+
+    Paint_DrawRectangle(1, 1, EPD_4IN2_V2_WIDTH-1, EPD_4IN2_V2_HEIGHT-1, WHITE, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+
+    return LAYOUT_OK;
+}
+
+layout_status_t layout_set_warning_screen(const char* text)
+{
+    if(Image == NULL) return LAYOUT_ERR_UNINITIALIZED;
+
+    Paint_DrawRectangle(X_START_WARNING, Y_START_WARNING, (X_START_WARNING+X_WIDTH_WARNING), (Y_START_WARNING+Y_HEIGHT_WARNING) ,BLACK ,DOT_PIXEL_2X2 ,DRAW_FILL_EMPTY);
+    Paint_DrawString_EN(98, 138, text, &Font24, BLACK, WHITE);
+
+   return LAYOUT_OK; 
+}
+
 layout_status_t layout_set_title(const char* text)
 {
     if(text == NULL) return LAYOUT_ERR_INPUT;
     if(Image == NULL) return LAYOUT_ERR_UNINITIALIZED;
     if(strlen(text) > MAX_TITLE_LEN) return LAYOUT_ERR_INPUT;
     
-    Paint_DrawRectangle(2,2,398,40,BLACK,DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
-    Paint_DrawString_EN(10,10,text,&Font24,BLACK,WHITE);
+    Paint_DrawRectangle(2, 2, 398, 40, BLACK, DOT_PIXEL_2X2, DRAW_FILL_EMPTY);
+    Paint_DrawString_EN(10, 10, text, &Font24, BLACK, WHITE);
 
     return LAYOUT_OK;
 }
