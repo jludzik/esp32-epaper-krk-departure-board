@@ -28,9 +28,9 @@
 # THE SOFTWARE.
 #
 ******************************************************************************/
+
 /*
-	Modified and adapted for ESP32 (ESP-IDF) by Jakub Łudzik
-	https://github.com/jludzik
+	Modified and adapted for ESP32 (ESP-IDF) by https://github.com/jludzik
     Date: 21.03.2026
 */
 #include "EPD_4in2_V2.h"
@@ -100,9 +100,7 @@ parameter:
 static void EPD_4IN2_V2_SendCommand(UBYTE Reg)
 {
     DEV_Digital_Write(EPD_DC_PIN, 0);
-    //DEV_Digital_Write(EPD_CS_PIN, 0);
     DEV_SPI_WriteByte(Reg);
-    //DEV_Digital_Write(EPD_CS_PIN, 1);
 }
 
 /******************************************************************************
@@ -113,9 +111,7 @@ parameter:
 static void EPD_4IN2_V2_SendData(UBYTE Data)
 {
     DEV_Digital_Write(EPD_DC_PIN, 1);
-    //DEV_Digital_Write(EPD_CS_PIN, 0);
     DEV_SPI_WriteByte(Data);
-    //DEV_Digital_Write(EPD_CS_PIN, 1);
 }
 
 /******************************************************************************

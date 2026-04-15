@@ -29,8 +29,7 @@
 ******************************************************************************/
 
 /*
-	Modified and adapted for ESP32 (ESP-IDF) by Jakub Łudzik
-	https://github.com/jludzik
+	Modified and adapted for ESP32 (ESP-IDF) by https://github.com/jludzik
     Date: 21.03.2026
 */
 

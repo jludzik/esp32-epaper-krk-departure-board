@@ -10,7 +10,6 @@
 
 esp_err_t ntp_connect(void)
 {
-    Debug("SNTP init");
     esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
     esp_sntp_setservername(0,NTP_CONNECT_SRV_URL);
     esp_sntp_init();

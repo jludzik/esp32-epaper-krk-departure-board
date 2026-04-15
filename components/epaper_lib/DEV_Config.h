@@ -45,6 +45,10 @@
 # THE SOFTWARE.
 #
 ******************************************************************************/
+/*
+	Modified and adapted for ESP32 (ESP-IDF) by https://github.com/jludzik
+    Date: 21.03.2026
+*/
 #ifndef _DEV_CONFIG_H_
 #define _DEV_CONFIG_H_
 

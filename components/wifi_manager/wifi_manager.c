@@ -92,6 +92,11 @@ static void prov_event_handler(void* arg, esp_event_base_t event_base, int32_t e
     }
 }
 
+bool wifi_manager_is_connected(void)
+{
+    return (wifi_connected == true);
+}
+
 void wifi_manager_init_sta(void)
 {
     // -------------------------- NVS INIT ------------------------------
@@ -150,4 +155,18 @@ void wifi_manager_init_sta(void)
         Debug(".");
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
+}
+
+void wifi_manager_reconnect(void)
+{
+    Debug("Reconnecting to Wi-Fi");
+    esp_wifi_disconnect();
+    esp_wifi_connect();
+
+    while(!wifi_connected)
+    {
+        Debug(".");
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+    Debug("Reconnected successfully");
 }

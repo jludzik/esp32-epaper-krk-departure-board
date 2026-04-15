@@ -3,6 +3,9 @@
 
 #include "esp_log.h"
 
+/** * @brief Main switch for debug messages. 
+ * Change this to 1 to see debug logs, or 0 to turn them off completely.
+ */
 #define DEBUG 1
 
 #if DEBUG
