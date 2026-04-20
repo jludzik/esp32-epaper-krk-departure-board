@@ -28,7 +28,7 @@ typedef enum {
     STATE_DRAW_DISPLAY,         /**< Sending the updated image buffer to the e-paper */
     STATE_WAIT_FOR_REFRESH,     /**< Idle state, waiting 20 seconds before the next update */
     STATE_REFRESH_ERROR,        /**< Handling errors during the update (counts up to MAX_WIFI_ERROR) */
-    STATE_WIFI_INIT_ERROR       /**< Handling critical errors during startup (forces reconnection) */
+    STATE_INIT_ERROR            /**< Handling critical errors during startup (forces reconnection) */
 } app_state_t;
 
 void app_main(void)
@@ -76,13 +76,13 @@ void app_main(void)
             case STATE_SYNC_TIME:
                 Debug("STATE_SYNC_TIME");
 
-                if(ntp_connect() != ESP_OK) current_state = STATE_WIFI_INIT_ERROR;
+                if(ntp_connect() != ESP_OK) current_state = STATE_INIT_ERROR;
                 else current_state = STATE_API_INIT;
             break;
             case STATE_API_INIT:
                 Debug("STATE_API_INIT");
 
-                if(mpk_api_init() != MPK_API_OK) current_state = STATE_WIFI_INIT_ERROR;
+                if(mpk_api_init() != MPK_API_OK) current_state = STATE_INIT_ERROR;
                 else current_state = STATE_SET_HEADERS;
   
             break;
@@ -152,20 +152,20 @@ void app_main(void)
                     wifi_error_counter++;
                 } 
             break;
-            case STATE_WIFI_INIT_ERROR:
-                Debug("STATE_WIFI_INIT_ERROR");
+            case STATE_INIT_ERROR:
+                Debug("STATE_INIT_ERROR");
 
                 DEV_Delay_ms(2000);
 
                 if(wifi_manager_is_connected() == false)
                 {
-                    Debug("Wi-Fi connection error");
+                    Debug("Wi-Fi ERROR");
                     current_state = STATE_WIFI_RECONNECTING; 
                 }
                 else
                 {
-                    Debug("Wi-Fi OK API error");
-                    current_state = STATE_API_INIT;
+                    Debug("Wi-Fi OK, network services ERROR");
+                    current_state = STATE_SYNC_TIME;
                 }
             break;
         }

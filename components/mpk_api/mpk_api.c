@@ -23,7 +23,7 @@ mpk_api_status_t mpk_api_init(void)
     if(recv_buffer != NULL)
     {
         Debug("Memory for recv_buffer is already allocated.");
-        return MPK_API_ERR_MEMORY_ALREADY_ALOCATED;
+        return MPK_API_OK;
     }
 
     recv_buffer = (char*)malloc(MAX_HTTP_RECV_BUFFER);
